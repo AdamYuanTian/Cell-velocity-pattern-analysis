@@ -20,7 +20,7 @@
 #Version 5 README
 #A summary file is added with Velocity Fluctuation Analysis included.
 #The summary format is good for Minitab analysis.
-#More criteria is needed for defining tethering cells.
+#Update neede: 1. More criteria is needed for defining tethering cells.
 
 ########### Place the py file in the folder with excel files need to be analyzed.
 
@@ -60,6 +60,10 @@ aveLogVelocityDiff_allFiles = []
 stdLogVelocityDiff_allFiles = []
 skewLogVelocityDiff_allFiles = []
 kurtLogVelocityDiff_allFiles = []
+trackedFrame_allFiles = []
+maxVelocity_allFiles = []
+minVelocity_allFiles = []
+tetherStatus_allFiles = []
 
 
 for fileName in folderList:
@@ -80,6 +84,10 @@ for fileName in folderList:
 	stdLogVelocityDiff_allSheets = []
 	skewLogVelocityDiff_allSheets = []
 	kurtLogVelocityDiff_allSheets = []
+	trackedFrame_allSheets = []
+	maxVelocity_allSheets = []
+	minVelocity_allSheets = []
+	tetherStatus_allSheets = []
 
 
 	sheetNames = wb.sheetnames #load all the sheet names and save to sheetNames
@@ -106,7 +114,7 @@ for fileName in folderList:
 			cellVelocity_temp.append(listVelocity[i])
 		
 		allCellVelocity.append(cellVelocity_temp) #add the last cell's velocities to the 2D list
-		allCellVelocity.pop(0) #clear the first empty element
+		allCellVelocity.pop(0) #clear the first zero element
 		
 ########### Read information from current sheet for data output later
 		sheetInformation_temp = []
@@ -125,6 +133,10 @@ for fileName in folderList:
 		stdLogVelocityDiff = []
 		skewLogVelocityDiff = []
 		kurtLogVelocityDiff = []
+		trackedFrame = []
+		maxVelocity = []
+		minVelocity = []
+		tetherStatus = []
 
 		tetheringCellVelocity = [] #store the tethering cell's velocities in current sheet
 		tetheringCellName = []
@@ -140,35 +152,8 @@ for fileName in folderList:
 			#		tetheringCellVelocity.append(allCellVelocity[j]) #store the velocity of tethering cells
 			#		tetheringCellName.append(allCellName[j]) #store the name of tethering cells
 			#		break
-		
-			######Criteria 1, compare the Max and Min instantaneous velocity of a cell, and compare their order
-			maxInsVelocity = max(allCellVelocity[j]) #Get the max velocity for a cell
-			maxInsVelocityLoc = allCellVelocity[j].index(max(allCellVelocity[j])) #Get the location of the 1st max velocity, assuming there is only one max
 			
-			minInsVelocity = min(allCellVelocity[j]) #Get the min velocity for a cell              
-			minInsVelocityLoc = [] #Store all the locations of min velocity
-			for counter, value in enumerate(allCellVelocity[j]): #Get all the locations of min velocity, there maybe multiple zero velocities for a cell
-				if value == minInsVelocity:
-					minInsVelocityLoc.append(counter)
 			
-			if minInsVelocity - maxInsVelocity <= velocityDiffCutoff and maxInsVelocityLoc < minInsVelocityLoc[-1]: #Apply Criteria 1
-				tetheringCellVelocity.append(allCellVelocity[j]) #Store the velocity of tethering cells
-				tetheringCellName.append(allCellName[j]) #Store the name of tethering cells
-				continue #Skip Criteria 2 if Critera 1 is fulfilled
-				
-			######Criteria 2, use a Dynamic Baseline to assess the drop in instantaneous velocity
-			baseline = allCellVelocity[j][0] #Initialize the baseline with the 1st instantaneous velocity
-			
-			for n in range(len(allCellVelocity[j])): #Go through each instantaneous velocity
-				velocityDiff = allCellVelocity[j][n]-baseline
-				if velocityDiff > 0: #Replace the baseline with a higher value
-					baseline = allCellVelocity[j][n] #Dynamic Baseline
-					continue #Proceed to next loop
-				if velocityDiff <= velocityDiffCutoff: #Meet the 2nd criteria
-					tetheringCellVelocity.append(allCellVelocity[j]) #Store the velocity of tethering cells
-					tetheringCellName.append(allCellName[j]) #Store the name of tethering cells
-					break #Terminate the loop
-					
 			######Calculation for assessing velocity fluctuation
 			aveVelocity_temp = np.mean(allCellVelocity[j]) 
 			aveVelocity.append(aveVelocity_temp) #store result for each cell
@@ -206,8 +191,54 @@ for fileName in folderList:
 			kurtLogVelocityDiff_temp = kurtosis(logVelocityDiff)
 			kurtLogVelocityDiff.append(kurtLogVelocityDiff_temp)
 
-			##################Inlcude tethering information##########
+			trackedFrame_temp = len(allCellVelocity[j])
+			trackedFrame.append(trackedFrame_temp)
 
+			maxVelocity_temp = max(allCellVelocity[j])
+			maxVelocity.append(maxVelocity_temp)
+
+			minVelocity_temp = min(allCellVelocity[j])
+			minVelocity.append(minVelocity_temp)
+
+
+			######Tethering cell identification
+			tetherStatus_temp = 'NonTether' #set default tether status, change to Tether if Criteria is met
+			
+			######Criteria 1, compare the Max and Min instantaneous velocity of a cell, and compare their order
+			maxInsVelocity = max(allCellVelocity[j]) #Get the max velocity for a cell
+			maxInsVelocityLoc = allCellVelocity[j].index(max(allCellVelocity[j])) #Get the location of the 1st max velocity, assuming there is only one max
+			
+			minInsVelocity = min(allCellVelocity[j]) #Get the min velocity for a cell              
+			minInsVelocityLoc = [] #Store all the locations of min velocity
+			for counter, value in enumerate(allCellVelocity[j]): #Get all the locations of min velocity, there maybe multiple zero velocities for a cell
+				if value == minInsVelocity:
+					minInsVelocityLoc.append(counter)
+			
+			if minInsVelocity - maxInsVelocity <= velocityDiffCutoff and maxInsVelocityLoc < minInsVelocityLoc[-1]: #Apply Criteria 1
+				tetheringCellVelocity.append(allCellVelocity[j]) #Store the velocity of tethering cells
+				tetheringCellName.append(allCellName[j]) #Store the name of tethering cells
+				tetherStatus_temp = 'Tether' #Update tether status when criteria is met
+				tetherStatus.append(tetherStatus_temp)
+				continue #Skip Criteria 2 if Critera 1 is fulfilled
+				
+			######Criteria 2, use a Dynamic Baseline to assess the drop in instantaneous velocity
+			baseline = allCellVelocity[j][0] #Initialize the baseline with the 1st instantaneous velocity
+			
+			for n in range(len(allCellVelocity[j])): #Go through each instantaneous velocity
+				velocityDiff = allCellVelocity[j][n]-baseline
+				if velocityDiff > 0: #Replace the baseline with a higher value
+					baseline = allCellVelocity[j][n] #Dynamic Baseline
+					continue #Proceed to next loop
+				if velocityDiff <= velocityDiffCutoff: #Meet the 2nd criteria
+					tetheringCellVelocity.append(allCellVelocity[j]) #Store the velocity of tethering cells
+					tetheringCellName.append(allCellName[j]) #Store the name of tethering cells
+					tetherStatus_temp = 'Tether' #Update tether status when criteria is met
+					tetherStatus.append(tetherStatus_temp)
+					break #Terminate the loop
+			
+			if tetherStatus_temp == 'NonTether': # If Critera 2 is not met, add tether information here. Avoid repeating.
+				tetherStatus.append(tetherStatus_temp)
+			
 		tetheringCellName_allSheets.append(tetheringCellName)
 		tetheringCellVelocity_allSheets.append(tetheringCellVelocity)
 
@@ -220,6 +251,10 @@ for fileName in folderList:
 		skewLogVelocityDiff_allSheets.append(skewLogVelocityDiff)
 		kurtLogVelocityDiff_allSheets.append(kurtLogVelocityDiff)
 		allCellName_allSheets.append(allCellName)
+		trackedFrame_allSheets.append(trackedFrame)
+		maxVelocity_allSheets.append(maxVelocity)
+		minVelocity_allSheets.append(minVelocity)
+		tetherStatus_allSheets.append(tetherStatus)
 
 	aveVelocity_allFiles.append(aveVelocity_allSheets) #store result for each file
 	stdVelocity_allFiles.append(stdVelocity_allSheets)
@@ -232,6 +267,10 @@ for fileName in folderList:
 	allCellName_allFiles.append(allCellName_allSheets)
 	sheetNames_allFiles.append(sheetNames)
 	sheetInformation_allFiles.append(sheetInformation)
+	trackedFrame_allFiles.append(trackedFrame_allSheets)
+	maxVelocity_allFiles.append(maxVelocity_allSheets)
+	minVelocity_allFiles.append(minVelocity_allSheets)
+	tetherStatus_allFiles.append(tetherStatus_allSheets)
 
 	#####write the data into excel and move onto next file
 	wkbk = xlwt.Workbook()
@@ -250,7 +289,7 @@ for fileName in folderList:
 #####Write analyzed data into a summary excel file
 wkbk_sum = xlwt.Workbook()
 ws1 = wkbk_sum.add_sheet('tetheringAnalysisSummary')
-title = ['CellType', 'Material', 'Concentration', 'ExpDate', 'Trial', 'ShearRate', 'CellName', 'SheetNames', 'Rolling', 'AveVelocity (um/s)', 'STD(v)', 'AveLog(v)', 'STD(log(v))', 'AveLog(v)Diff', 'STD(Log(v)Diff)', 'Skew(Log(v)Diff)', 'Kurt(Log(v)Diff)']
+title = ['CellType', 'Material', 'Concentration', 'ExpDate', 'Trial', 'ShearRate', 'CellName', 'SheetNames', 'Rolling', 'AveVelocity (um/s)', 'STD(v)', 'AveLog(v)', 'STD(log(v))', 'AveLog(v)Diff', 'STD(Log(v)Diff)', 'Skew(Log(v)Diff)', 'Kurt(Log(v)Diff)', 'TrackedFrame', 'Max(um/s)', 'Min(um/s)', 'TetherStatus']
 for d in range(len(title)):  #write title on the first row
 	ws1.write(0, d, title[d])
 
@@ -280,6 +319,10 @@ for e in range(len(aveVelocity_allFiles)): #loop for each file (material)
 			ws1.write(row, col+14, stdLogVelocityDiff_allFiles[e][f][g])
 			ws1.write(row, col+15, skewLogVelocityDiff_allFiles[e][f][g])
 			ws1.write(row, col+16, kurtLogVelocityDiff_allFiles[e][f][g])
+			ws1.write(row, col+17, trackedFrame_allFiles[e][f][g])
+			ws1.write(row, col+18, maxVelocity_allFiles[e][f][g])
+			ws1.write(row, col+19, minVelocity_allFiles[e][f][g])
+			ws1.write(row, col+20, tetherStatus_allFiles[e][f][g])
 			row += 1 
 
 wkbk_sum.save('Tethering Analysis Summary' + '.xls')
